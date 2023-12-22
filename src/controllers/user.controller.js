@@ -4,22 +4,22 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.models.js";
 import { uploadOnCloudinary } from "../utils/cloudnary.js";
 
-const generateAccesAndRefreshTokens = async (userId) => {
+const generateAccessAndRefreshTokens = async(userId) =>{
   try {
-    const user = await User.findById(userId);
-    const accessToken = await User.generateAccessToken();
-    const refreshToken = await User.generateRefreshToken();
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+      const user = await User.findById(userId)
+      const accessToken = user.generateAccessToken()
+      const refreshToken = user.generateRefreshToken()
 
-    return { accessToken, refreshToken };
+      user.refreshToken = refreshToken
+      await user.save({ validateBeforeSave: false })
+
+      return {accessToken, refreshToken}
+
+
   } catch (error) {
-    throw new ApiError(
-      500,
-      "Something went wrong while generating refresh and access tokens"
-    );
+      throw new ApiError(500, "Something went wrong while generating referesh and access token")
   }
-};
+}
 
 const registerUser = asyncHandler(async (req, res) => {
   //  get user details from frontend
@@ -96,25 +96,27 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
 
-  if (!(email || username)) {
+  if (!email && !username) {
     throw new ApiError(400, "User name or email is required");
   }
 
-  const user = User.findOne({
-    $or: [{ email }, { username }],
-  });
+  const user = await User.findOne({
+    $or: [{username}, {email}]
+})
+
+  console.log("user: " + user);
 
   if (!user) {
     throw new ApiError(404, "Useer does not exist");
   }
 
-  const isPasswordValid = await isPasswordCorrect(password);
+  const isPasswordValid = await user.isPasswordCorrect(password);
 
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid user credentials");
   }
 
-  const { accessToken, refreshToken } = await generateAccesAndRefreshTokens(
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
     user._id
   );
 
